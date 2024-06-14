@@ -100,7 +100,8 @@ axios.request(config)
   res.send(response.data)
 })
 .catch((error) => {
-  console.log(error);
+  // console.log(error,"kkk");
+  res.send({error:error.message})
 });
 
  } catch (error) {
