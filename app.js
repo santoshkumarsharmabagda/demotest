@@ -70,6 +70,46 @@ app.get("/user/token", async (req, res) => {
   }
 })
 
+
+app.get("/user/search",async(req, res)=>{
+ try {
+  const { id, token } = req.query;
+  // console.log('====================================');
+  // console.log(token);
+  // console.log('====================================');
+  const axios = require('axios');
+let data = JSON.stringify({
+  "caseNumberFull": id
+});
+
+let config = {
+  method: 'post',
+  maxBodyLength: Infinity,
+  url: 'https://pcl.uscourts.gov/pcl-public-api/rest/cases/find',
+  headers: { 
+    'Content-Type': 'application/json', 
+    'Accept': 'application/json', 
+    'X-NEXT-GEN-CSO': token
+  },
+  data : data
+};
+
+axios.request(config)
+.then((response) => {
+  // console.log(JSON.stringify(response.data));
+  res.send(response.data)
+})
+.catch((error) => {
+  console.log(error);
+});
+
+ } catch (error) {
+  console.log('====================================');
+  console.log(error);
+  console.log('====================================');
+ }
+  
+})
 const PORT = process.env.PORT || 4000
 
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))
