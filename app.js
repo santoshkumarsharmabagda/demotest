@@ -1,4 +1,6 @@
 const express = require('express');
+const axios = require('axios');
+
 const app = express();
 require('dotenv').config()
 const cors = require("cors")
@@ -36,6 +38,37 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
+app.get("/user/token", async (req, res) => {
+  try {
+
+    let data = JSON.stringify({
+      "loginId": "aibnsamin",
+      "password": "AtticusDev1234@"
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://pacer.login.uscourts.gov/services/cso-auth',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      data: data
+    };
+
+    axios.request(config)
+      .then((response) => {
+        res.send(response.data)
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+  } catch (error) {
+    console.log(error);
+  }
+})
 
 const PORT = process.env.PORT || 4000
 
