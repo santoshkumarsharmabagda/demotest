@@ -1,14 +1,140 @@
 const express = require('express');
 const axios = require('axios');
+const mongoose = require('mongoose');
+const path=require('path');
+const nodemailer = require('nodemailer');
+const generateUniqueId = require('generate-unique-id');
+
+const id2 = generateUniqueId({
+  length: 32,
+  useLetters: false
+});
 
 const app = express();
 require('dotenv').config()
 const cors = require("cors")
 const stripe = require('stripe')(process.env.SKEY); // Replace 'your_secret_key' with your actual Stripe secret key
 const bodyParser = require('body-parser');
+const upload = require('./multer');
 app.use(bodyParser.json());
 app.use(cors());
 
+app.use("/",express.static(path.join(__dirname,'uploads')));
+
+
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log('Connected!'));
+
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  userid: { type: String, required: true },
+  useref: { type: String, required: true },
+  phonenumber: { type: String, required: true },
+  img: { type: String }
+});
+
+const User = mongoose.model("Users", userSchema);
+
+
+
+app.get("/get/all/team",async(req,res)=>{
+  try {
+    const { email } = req.query;
+    const users = await User.find({useref:email});
+    res.send({data:users})
+  } catch (error) {
+    console.log(error);
+  }
+})
+
+
+app.post("/user/team",async (req, res) => {
+  try {
+    const {email,usermail,link} = req.body;
+  
+    const user = await User.findOne({email:usermail});
+
+    console.log(user);
+    console.log(link+'/sign/up?email='+user.email+"&userid="+user.userid);
+
+
+
+    const transporter = nodemailer.createTransport({
+      pool: true,
+      host: "smtp.mailersend.net",
+      port: 587,
+      // secure: true,
+      auth: {
+        user: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+        pass: 'fegPhXgjR8ponHuk'
+      }
+    });
+
+      const mailOptions = {
+        from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+        to: email,
+        subject: 'Jurist Ai Team',
+        html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+        
+      };
+
+      // Send the email
+transporter.sendMail(mailOptions, (error, info) => {
+  if (error) {
+    console.log('Error sending email: ' + error);
+  } else {
+    console.log('Email sent: ' + info.response);
+  }
+
+
+  res.send({status:"1",message:"user link send successfully",email})
+});
+  } catch (error) {
+    console.log(error);
+  }
+
+
+   
+});
+
+
+app.post("/user/create",upload.single('img'),async(req,res)=>{
+  try {
+    const userData = req.body;
+    console.log(userData);
+
+    const protocol = req.protocol; // "http" or "https"
+        const host = req.get('host'); // Hostname and port
+        const baseUrl = `http://${host}`;
+
+        // const userDatasave = new User();
+
+        const userDatasave = new User({
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          userid: id2+userData.email,
+          useref: userData.useref,
+          userefid:userData.userefid,
+          phonenumber: userData.phonenumber,
+          img: baseUrl + "/" + req.file.filename
+        });
+        
+
+
+    const data = await User.create(userDatasave);
+    // Respond with with full message
+    res.send({ data: data,img:baseUrl+"/"+req.file.filename  });
+   
+    
+  } catch (error) {
+    console.log(error);
+    res.send({status:"01",error:error.message})
+  }
+})
 
 app.get("/",async(req, res)=>{
 try {
@@ -111,6 +237,9 @@ axios.request(config)
  }
   
 })
+
+
+
 
 
 app.post("/api/adv/search",async(req, res)=>{
