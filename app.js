@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
-  userid: { type: String, required: true },
-  useref: { type: String, required: true },
+  userid: { type: String },
+  useref: { type: String },
   phonenumber: { type: String, required: true },
   img: { type: String }
 });
@@ -287,6 +287,16 @@ axios.request(config)
 })
 
 
+
+
+app.get("/user/get/all",async(req,res)=>{
+  try {
+    const data = await User.find();
+    res.send({data:data})
+  } catch (error) {
+    console.log(error);
+  }
+})
 
 
 // app.post("/api/adv/search", async (req, res) => {
