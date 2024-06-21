@@ -51,6 +51,16 @@ app.get("/get/all/team",async(req,res)=>{
 })
 
 
+app.get("/user/image",async(req,res)=>{
+  try {
+    const { email } = req.query;
+    const users = await User.find({email:email});
+  } catch (error) {
+    console.log(error);
+  }
+})
+
+
 app.post("/user/team",async (req, res) => {
   try {
     const {email,usermail,link} = req.body;
