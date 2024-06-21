@@ -94,6 +94,7 @@ transporter.sendMail(mailOptions, (error, info) => {
 });
   } catch (error) {
     console.log(error);
+    res.send({status:"01",error:error.message})
   }
 
 
