@@ -55,8 +55,10 @@ app.get("/user/image",async(req,res)=>{
   try {
     const { email } = req.query;
     const users = await User.find({email:email});
+    res.send({data:users})
   } catch (error) {
     console.log(error);
+    res.send({status:"01",error:error.message})
   }
 })
 
