@@ -29,6 +29,13 @@ mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log('Connected!'));
 
 
+const teamSchema = new mongoose.Schema({
+  referrer:{type:String},
+  referred:{type:String},
+  status:{type:Number}
+})
+
+
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, unique: true, required: true },
@@ -41,7 +48,19 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model("Users", userSchema);
+const Team = mongoose.model("Teams", teamSchema);
 
+
+app.post("/team/join/user",async(req,res)=>{
+  try {
+    const data = req.body;
+    const user = new Team(data);
+    await user.save();
+    res.send({status:"1",message:"user created successfully"})
+  } catch (error) {
+    console.log(error);
+  }
+})
 
 
 app.delete("/user/delete/all",async(req,res)=>{
