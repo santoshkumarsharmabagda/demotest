@@ -10,6 +10,8 @@ const id2 = generateUniqueId({
   useLetters: false
 });
 
+
+
 const app = express();
 require('dotenv').config()
 const cors = require("cors")
@@ -68,30 +70,77 @@ app.post("/user/team",async (req, res) => {
     const {email,usermail,link} = req.body;
   
     const user = await User.findOne({email:usermail});
+    const exist = await User.findOne({email:email});
 
-    console.log(user);
+
+    
+    // console.log(exist,"jj");
     console.log(link+'/sign/up?email='+user.email+"&userid="+user.userid);
 
 
 
     const transporter = nodemailer.createTransport({
-      pool: true,
-      host: "smtp.mailersend.net",
-      port: 587,
-      // secure: true,
+      // configure your email sending service
+      service: 'gmail',
+      secure: true,
+      port: 465,
       auth: {
-        user: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
-        pass: 'fegPhXgjR8ponHuk'
-      }
-    });
+          user: 'softcode2005@gmail.com',
+          pass: 'jpvn itvc qyso tebu',
+      },
+  });
+  if (!exist) {
+    mailOptions = {
+     from: 'softcode2005@gmail.com',
+     to: email,
+     subject: 'Jurist Ai Team',
+     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+     
+   };
+ }else{
+    mailOptions = {
+     from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+     to: email,
+     subject: 'Jurist Ai Team',
+     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/login?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+     
+   };
+ }
+  // await transporter.sendMail(mailOptions);
 
-      const mailOptions = {
-        from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
-        to: email,
-        subject: 'Jurist Ai Team',
-        html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+
+    // const transporter = nodemailer.createTransport({
+    //   pool: true,
+    //   host: "smtp.mailersend.net",
+    //   port: 587,
+    //   // secure: true,
+    //   auth: {
+    //     user: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+    //     pass: 'fegPhXgjR8ponHuk'
+    //   }
+    // });
+
+    // let mailOptions;
+
+    // if (!exist) {
+    //    mailOptions = {
+    //     from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+    //     to: email,
+    //     subject: 'Jurist Ai Team',
+    //     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
         
-      };
+    //   };
+    // }else{
+    //    mailOptions = {
+    //     from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
+    //     to: email,
+    //     subject: 'Jurist Ai Team',
+    //     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/login?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+        
+    //   };
+    // }
+
+      
 
       // Send the email
 transporter.sendMail(mailOptions, (error, info) => {
