@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
   useref: { type: String },
   phonenumber: { type: String, required: true },
   img: { type: String },
+  picture: { type: String },
   createuserid:{type: String}
 });
 
@@ -215,6 +216,7 @@ app.post("/user/create",upload.single('img'),async(req,res)=>{
           userefid:userData.userefid,
           phonenumber: userData.phonenumber,
           createuserid:userData.createuserid,
+          picture:userData.picture,
           img: baseUrl + "/" + req.file.filename
         });
         
