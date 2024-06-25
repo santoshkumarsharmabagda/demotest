@@ -18,6 +18,7 @@ const cors = require("cors")
 const stripe = require('stripe')(process.env.SKEY); // Replace 'your_secret_key' with your actual Stripe secret key
 const bodyParser = require('body-parser');
 const upload = require('./multer');
+const { type } = require('os');
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -35,11 +36,23 @@ const userSchema = new mongoose.Schema({
   userid: { type: String },
   useref: { type: String },
   phonenumber: { type: String, required: true },
-  img: { type: String }
+  img: { type: String },
+  createuserid:{type: String}
 });
 
 const User = mongoose.model("Users", userSchema);
 
+
+
+app.delete("/user/delete/all",async(req,res)=>{
+  try {
+    await User.deleteMany({});
+    res.send({status:"1",message:"all user deleted"})
+  } catch (error) {
+    console.log(error);
+    res.send({status:"01",error:error.message})
+  }
+})
 
 
 app.get("/get/all/team",async(req,res)=>{
@@ -94,7 +107,7 @@ app.post("/user/team",async (req, res) => {
      from: 'softcode2005@gmail.com',
      to: email,
      subject: 'Jurist Ai Team',
-     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/sign/up?email='+user.email+'&userid='+user.userid+'&refsub='+user.createuserid+'">Click here for signup</a>'
      
    };
  }else{
@@ -102,7 +115,7 @@ app.post("/user/team",async (req, res) => {
      from: 'MS_ChnH3V@trial-x2p0347o789gzdrn.mlsender.net',
      to: email,
      subject: 'Jurist Ai Team',
-     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/login?email='+user.email+'&userid='+user.userid+'">Click here for signup</a>'
+     html: '<b>Jurist Ai</b><br><a href="https://juristai.wrmlabs.com/login?email='+user.email+'&userid='+user.userid+'&refsub='+user.createuserid+'">Click here for signup</a>'
      
    };
  }
@@ -182,6 +195,7 @@ app.post("/user/create",upload.single('img'),async(req,res)=>{
           useref: userData.useref,
           userefid:userData.userefid,
           phonenumber: userData.phonenumber,
+          createuserid:userData.createuserid,
           img: baseUrl + "/" + req.file.filename
         });
         
