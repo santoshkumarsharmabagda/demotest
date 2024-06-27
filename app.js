@@ -58,7 +58,7 @@ app.get("/get/all/teams",async(req,res)=>{
     const teams = await Team.find({referrer:createuserid});
     let usersData = [];
     teams.map(async(res)=>{
-      usersData.push(await User.findOne(res.referrer))
+      usersData.push(await User.findOne({createuserid:res.referrer}))
     })
     res.send({data:teams,users:usersData})
   } catch (error) {
