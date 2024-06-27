@@ -54,8 +54,25 @@ const Team = mongoose.model("Teams", teamSchema);
 
 app.get("/get/all/team",async(req,res)=>{
   try {
-    const { email } = req.query;
-    const teams = await Team.find({referrer:email});
+    const { createuserid } = req.query;
+    const teams = await Team.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "referrer",
+          foreignField: "userid",
+          as: "referrerDoc"
+        }
+      },
+      {
+        $unwind: "$referrerDoc"
+      },
+      {
+        $match: {
+          "referrerDoc.createuserid": createuserid
+        }
+      }
+    ]);
     res.send({data:teams})
   } catch (error) {
     console.log(error);
