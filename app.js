@@ -52,6 +52,15 @@ const User = mongoose.model("Users", userSchema);
 const Team = mongoose.model("Teams", teamSchema);
 
 
+app.get("/get/all/team",async(req,res)=>{
+  try {
+    const teams = await Team.find();
+    res.send({data:teams})
+  } catch (error) {
+    console.log(error);
+  }
+})
+
 app.post("/team/join/user",async(req,res)=>{
   try {
     const data = req.body;
