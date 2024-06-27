@@ -54,7 +54,8 @@ const Team = mongoose.model("Teams", teamSchema);
 
 app.get("/get/all/team",async(req,res)=>{
   try {
-    const teams = await Team.find();
+    const { email } = req.query;
+    const teams = await Team.find({referrer:email});
     res.send({data:teams})
   } catch (error) {
     console.log(error);
