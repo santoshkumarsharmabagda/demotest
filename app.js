@@ -30,9 +30,9 @@ mongoose.connect(process.env.MONGO_URL)
 
 
 const teamSchema = new mongoose.Schema({
-  referrer:{type:String},
-  referred:{type:String},
-  status:{type:Number}
+  referrer:{type:String,required: true},
+  referred:{type:String,required: true},
+  status:{type:Number,required: true}
 })
 
 
@@ -48,32 +48,55 @@ const userSchema = new mongoose.Schema({
   createuserid:{type: String}
 });
 
-const User = mongoose.model("Users", userSchema);
-const Team = mongoose.model("Teams", teamSchema);
+const User = mongoose.model("User", userSchema);
+teamSchema.index({ referrer: 1 }, { unique: false });
+const Team = mongoose.model("Team", teamSchema);
 
 
-app.get("/get/all/teams",async(req,res)=>{
+app.get("/get/all/teams", async (req, res) => {
   try {
     const { createuserid } = req.query;
-    const teams = await Team.find({referrer:createuserid});
-    let usersData = [];
-    teams.map(async(res)=>{
-      usersData.push(await User.findOne({createuserid:res.referrer}))
-    })
-    res.send({data:teams,users:usersData})
+
+    // Assuming Team and User models are properly imported
+    const teams = await Team.find({ referrer: createuserid });
+    const myteams = await Team.find({ referred: createuserid });
+
+    // Map through teams to fetch user data for each referrer
+    const userPromises = teams.map(async (team) => {
+      const userData = await User.findOne({ createuserid: team.referrer });
+      return userData; // Return the user data
+    });
+    const userPromises2 = myteams.map(async (team) => {
+      const userData = await User.findOne({ createuserid: team.referrer });
+      return userData; // Return the user data
+    });
+
+    // Wait for all user data promises to resolve
+    const usersData = await Promise.all(userPromises);
+    const usersData2 = await Promise.all(userPromises2);
+
+    // Respond with both teams and usersData
+    res.send({ data: teams, users: usersData,myuser:usersData2 });
+
   } catch (error) {
     console.log(error);
+    res.status(500).send('Server Error'); // Handle error appropriately
   }
-})
+});
 
-app.post("/team/join/user",async(req,res)=>{
+app.post("/team/join/user", async (req, res) => {
   try {
     const data = req.body;
-    const user = new Team(data);
-    await user.save();
-    res.send({status:"1",message:"user created successfully"})
+    const { referrer, referred, status } = data;
+    const user = await Team.create({ referrer, referred, status });
+    res.send({ status: "1", message: "user created successfully" });
   } catch (error) {
-    console.log(error);
+    if (error.code === 11000) {
+      res.status(400).send({ status: "0", error: "Duplicate key error" });
+    } else {
+      console.log(error);
+      res.status(500).send({ status: "0", error: "Internal server error" });
+    }
   }
 })
 
