@@ -53,6 +53,139 @@ teamSchema.index({ referrer: 1 }, { unique: false });
 const Team = mongoose.model("Team", teamSchema);
 
 
+
+
+app.post('/get-subscriptions-status', async (req, res) => {
+  const { subscriptionId } = req.body;
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    if (subscription.status === 'active') {
+      res.send({ status: 'active' });
+    } else {
+      res.send({ status: 'inactive' });
+    }
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+app.post('/change-subscription-status', async (req, res) => {
+  const { subscriptionId } = req.query;
+
+  try {
+    // Check if the subscription exists
+    const exist = await stripe.subscriptions.retrieve(subscriptionId);
+
+    if (!exist) {
+      return res.status(404).send({ error: 'Subscription not found' });
+    }
+
+    // Resume the subscription
+    const subscription = await stripe.subscriptions.resume(
+      subscriptionId,
+      {
+        billing_cycle_anchor: 'now',
+      }
+    );
+
+    res.send({ status: subscription });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+app.get('/cancel-subscription', async (req, res) => {
+  try {
+    const { subscriptionId } = req.query;
+    const subscription = await stripe.subscriptions.cancel(subscriptionId);
+
+    res.send({ message: 'Subscription cancelled',subscription });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+app.get('/get-subscriptions-history', async (req, res) => {
+  const { id } = req.query;
+
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: id,
+      limit: 100,
+    });
+
+    console.log(invoices.data);
+    // const data = invoices.data
+    //   .filter(invoice => invoice.lines.data.some(line => line.plan.active === false))
+    //   .map(invoice => ({
+    //     date: invoice.date,
+    //     total: invoice.total,
+    //     currency: invoice.currency,
+    //     lines: invoice.lines.data.reduce((acc, line) => {
+    //       if (line.plan.active === false) {
+    //         acc.push({
+    //           plan: line.plan.id,
+    //           amount: line.amount,
+    //           currency: line.currency,
+    //           description: line.description,
+    //         });
+    //       }
+    //       return acc;
+    //     }, []),
+    //   }));
+
+    res.send(invoices.data);
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+app.get('/get-subscription-next-date', async (req, res) => {
+  const { id } = req.query;
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(id);
+    const currentPeriodEnd = subscription.current_period_end;
+    const nextPeriodStart = subscription.current_period_start + (subscription.current_period_end - subscription.current_period_start);
+
+    const nextDate = new Date(nextPeriodStart * 1000);
+    const formattedDate = nextDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    res.send({
+      nextDate: formattedDate,
+    });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+app.get('/get-customer-subscriptions', async (req, res) => {
+  const { id } = req.query;
+
+  try {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: id,
+      status: 'all', // or 'active' to get only active subscriptions
+    });
+
+    res.send(subscriptions.data);
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
 app.get("/get/all/teams", async (req, res) => {
   try {
     const { createuserid } = req.query;
@@ -282,21 +415,143 @@ try {
 
 
 app.post('/create-payment-intent', async (req, res) => {
-  const { amount } = req.body;
+  const { userdata,amount,payment_method } = req.body;
 
   try {
+
+
+    const customer = await stripe.customers.create({
+      name: userdata.family_name,
+      email: userdata.email,
+      payment_method: payment_method, // Pass the payment method ID here
+      invoice_settings: {
+        default_payment_method: payment_method, // Set as default payment method for invoices
+      },
+      metadata: { username: userdata.family_name }
+    });
+
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100, // amount in cents
       currency: 'usd',
+      customer: customer.id, // Associate the payment intent with the customer
+      metadata: { customer: customer.id }
     });
+
+    
+
+
+    console.log(customer,"uuu");
+
+    // const paymentIntent = await stripe.paymentIntents.create({
+    //   amount: amount * 100, // amount in cents
+    //   currency: 'usd',
+    //   metadata:{Customer:customerId}
+      
+    // });
 
     res.send({
       clientSecret: paymentIntent.client_secret,
+      paymentid: paymentIntent.id,
+      
+      customerId: customer.id,
+      status:"succeeded"
     });
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
 });
+
+
+app.post('/create-subscription', async (req, res) => {
+  const { customerId, priceId } = req.body;
+
+  try {
+    // Retrieve the customer to ensure they have a default payment method
+    const customer = await stripe.customers.retrieve(customerId);
+
+    if (!customer.invoice_settings.default_payment_method) {
+      throw new Error('Customer has no default payment method');
+    }
+
+    // Create the subscription with the default payment method
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      expand: ['latest_invoice.payment_intent'],
+    });
+
+    res.send({
+      subscriptionId: subscription.id,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      status:"succeeded"
+    });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+
+app.get('/get-subscriptions', async (req, res) => {
+  const { customerId } = req.query;
+
+  try {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all', // or 'active' to get only active subscriptions
+    });
+
+    const totalSubscriptions = subscriptions.data.length;
+
+    res.send({
+      customerId: customerId,
+      totalSubscriptions: totalSubscriptions,
+      subscriptions: subscriptions.data,
+    });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+
+
+
+
+
+// app.post('/create-subscription', async (req, res) => {
+//   const { customerId, priceId } = req.body;
+// // console.log(priceId,"priceId");
+//   try {
+//     const subscription = await stripe.subscriptions.create({
+//       customer: customerId,
+//       items: [
+//         {
+//           price: priceId,
+//         },
+//       ],
+//       // payment_settings: {
+//       //   payment_method_options: {
+//       //     card: {
+//       //       request_three_d_secure: 'any',
+//       //     },
+//       //   },
+//       //   payment_method_types: ['card'],
+//       //   save_default_payment_method: 'on_subscription',
+//       // },
+//       expand: ['latest_invoice.payment_intent'],
+//     });
+
+//     console.log(subscription.id,"iuuuu");
+//     res.send({
+//       subscriptionId: subscription.id,
+//       clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+//     });
+//   } catch (error) {
+//     res.status(500).send({ error: error.message });
+//   }
+// });
+
 
 app.get("/user/token", async (req, res) => {
   try {
