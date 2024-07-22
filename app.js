@@ -289,7 +289,7 @@ app.post("/user/team",async (req, res) => {
       port: 465,
       auth: {
           user: 'softcode2005@gmail.com',
-          pass: 'jpvn itvc qyso tebu',
+          pass: '',
       },
   });
   if (!exist) {
